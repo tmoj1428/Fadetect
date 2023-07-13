@@ -1,5 +1,6 @@
 package com.example.fadetect
 
+import DatabaseHelper
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.widget.Button
@@ -12,6 +13,7 @@ import android.os.Build
 import android.telephony.PhoneStateListener
 import android.telephony.SignalStrength
 import android.telephony.TelephonyManager
+import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -28,11 +30,15 @@ class MainActivity : AppCompatActivity() {
     private lateinit var locationTextView: TextView
     private lateinit var signalStrengthTextView: TextView
     private var isGatheringData = false
+    private var strength = 0
+    private var latitude = 0.0
+    private var longitude = 0.0
 
     private lateinit var telephonyManager: TelephonyManager
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var locationRequest: LocationRequest
     private lateinit var locationCallback: LocationCallback
+    private lateinit var dbHelper: DatabaseHelper
 
     private val signalStrengthListener = object : PhoneStateListener() {
         @SuppressLint("SetTextI18n")
@@ -40,7 +46,7 @@ class MainActivity : AppCompatActivity() {
         override fun onSignalStrengthsChanged(signalStrength: SignalStrength) {
             // Handle signal strength changes here
             // You can access the signal strength information using signalStrength.getGsmSignalStrength() or other methods
-            val strength = signalStrength.cellSignalStrengths[0].dbm // Example: GSM signal strength
+            strength = signalStrength.cellSignalStrengths[0].dbm // Example: GSM signal strength
             signalStrengthTextView.text = "Signal Strength: $strength"
         }
     }
@@ -50,10 +56,12 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        applicationContext.getExternalFilesDir("")
         startStopButton = findViewById(R.id.startStopButton)
         statusTextView = findViewById(R.id.statusTextView)
         locationTextView = findViewById(R.id.locationTextView)
         signalStrengthTextView = findViewById(R.id.signalStrengthTextView)
+        dbHelper = DatabaseHelper(this)
 
         telephonyManager = getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
@@ -63,9 +71,11 @@ class MainActivity : AppCompatActivity() {
              override fun onLocationResult(locationResult: LocationResult) {
                 locationResult?.let {
                     for (location in locationResult.locations) {
-                        val latitude = location.latitude
-                        val longitude = location.longitude
+                        latitude    =  String.format("%.4f", location.latitude).toDouble()
+                        longitude   = String.format("%.4f", location.longitude).toDouble()
                         locationTextView.text = "Location: $latitude, $longitude"
+
+                        addToDb()
                     }
                 }
             }
@@ -75,8 +85,70 @@ class MainActivity : AppCompatActivity() {
             if (isGatheringData) {
                 stopGatheringData()
             } else {
-                startGatheringData()
+                checkPermissionsAndStartGatheringData()
             }
+        }
+    }
+
+    private fun addToDb() {
+        val rsrp = strength
+        val lat = latitude
+        val lon = longitude
+
+        val std = DataModel(rsrp = rsrp, latitude = lat, longitude = lon)
+        val status = dbHelper.insertData(std)
+        //Check insert success
+        if (status > -1) {
+            println("Data added successfully")
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.Q)
+    private fun checkPermissionsAndStartGatheringData() {
+        // Check permissions
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+            || ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+            || ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.READ_PHONE_STATE
+            ) != PackageManager.PERMISSION_GRANTED
+            || ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            // Request permissions
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION,
+                    Manifest.permission.READ_PHONE_STATE,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE
+                ),
+                PERMISSION_REQUEST_CODE
+            )
+        }
+
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_BACKGROUND_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(
+                    Manifest.permission.ACCESS_BACKGROUND_LOCATION
+                    ),
+                PERMISSION_REQUEST_CODE
+            )
+        } else {
+            startGatheringData()
         }
     }
 
@@ -91,6 +163,10 @@ class MainActivity : AppCompatActivity() {
             || ContextCompat.checkSelfPermission(
                 this,
                 Manifest.permission.ACCESS_COARSE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+            || ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_BACKGROUND_LOCATION
             ) != PackageManager.PERMISSION_GRANTED
             || ContextCompat.checkSelfPermission(
                 this,
@@ -130,6 +206,13 @@ class MainActivity : AppCompatActivity() {
         statusTextView.text = "Status: Stopped"
         locationTextView.text = "Location: NULL"
         signalStrengthTextView.text = "Signal Strength: NULL"
+
+        val success = dbHelper.exportDatabase(this)
+        if (success) {
+            Toast.makeText(this, "Database exported successfully", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(this, "Failed to export database, please remove it manually from Download folder", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun createLocationRequest() {
