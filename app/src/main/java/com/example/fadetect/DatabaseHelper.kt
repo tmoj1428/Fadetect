@@ -1,3 +1,4 @@
+import android.annotation.SuppressLint
 import android.content.ContentValues
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
@@ -22,6 +23,7 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
     }
 
     override fun onCreate(db: SQLiteDatabase) {
+        db.execSQL("DROP TABLE IF EXISTS $TBL_DATA")
         val createTblData = ("CREATE TABLE " + TBL_DATA + "("
                 + RSRP + " INTEGER,"
                 + LATITUDE + " REAL,"
@@ -29,12 +31,12 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
                 + "PRIMARY KEY (" + RSRP + ", " + LATITUDE + ", " + LONGITUDE + ")"
                 + ")")
 
-        db?.execSQL(createTblData)
+        db.execSQL(createTblData)
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
         // Handle database upgrades if needed
-        db!!.execSQL("DROP TABLE IF EXISTS $TBL_DATA")
+        db.execSQL("DROP TABLE IF EXISTS $TBL_DATA")
         onCreate(db)
     }
 
@@ -50,27 +52,49 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         return success
     }
 
+    @SuppressLint("SetWorldReadable", "SetWorldWritable")
     fun exportDatabase(context: Context): Boolean {
         val inputPath = context.getDatabasePath(DATABASE_NAME).absolutePath
         val outputPath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
         val outputFileName = "exported_database.sql"
+        val fullPath = "${outputPath}/${outputFileName}"
 
         try {
             val outputFile = File(outputPath, outputFileName)
 
             if (outputFile.exists()) {
-                outputFile.delete()
+                if (removePrevData(fullPath)) {
+                    println("data based cleared successfully")
+                } else {
+                    println("there is an error in deleting table")
+                }
             }
-            outputFile.createNewFile()
 
             val inputFile = File(inputPath)
             inputFile.copyTo(outputFile, overwrite = true)
+
+            outputFile.setReadable(true, false)
+            outputFile.setWritable(true, false)
 
             return true
         } catch (e: IOException) {
             e.printStackTrace()
         }
 
+        return false
+    }
+
+    private fun removePrevData(databasePath: String) : Boolean {
+        try {
+            val database = SQLiteDatabase.openDatabase(databasePath, null, SQLiteDatabase.OPEN_READWRITE)
+            val deleteQuery = "DELETE FROM $TBL_DATA;"
+            database.execSQL(deleteQuery)
+            database.close()
+
+            return true
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
         return false
     }
 }

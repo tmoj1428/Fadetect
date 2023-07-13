@@ -61,7 +61,6 @@ class MainActivity : AppCompatActivity() {
         statusTextView = findViewById(R.id.statusTextView)
         locationTextView = findViewById(R.id.locationTextView)
         signalStrengthTextView = findViewById(R.id.signalStrengthTextView)
-        dbHelper = DatabaseHelper(this)
 
         telephonyManager = getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
@@ -155,37 +154,7 @@ class MainActivity : AppCompatActivity() {
     @SuppressLint("SetTextI18n")
     @RequiresApi(Build.VERSION_CODES.Q)
     private fun startGatheringData() {
-        // Check permissions
-        if (ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED
-            || ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.ACCESS_COARSE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED
-            || ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.ACCESS_BACKGROUND_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED
-            || ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.READ_PHONE_STATE
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            // Request permissions
-            ActivityCompat.requestPermissions(
-                this,
-                arrayOf(
-                    Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.ACCESS_COARSE_LOCATION,
-                    Manifest.permission.ACCESS_BACKGROUND_LOCATION,
-                    Manifest.permission.READ_PHONE_STATE
-                ),
-                PERMISSION_REQUEST_CODE
-            )
-            return
-        }
+        dbHelper = DatabaseHelper(this)
 
         // Start gathering signal power data
         telephonyManager.listen(signalStrengthListener, PhoneStateListener.LISTEN_SIGNAL_STRENGTHS)
