@@ -9,24 +9,64 @@
         android:id="@+id/startStopButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
         android:text="Start" />
 
     <TextView
         android:id="@+id/statusTextView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Status: Stopped" />
+        android:layout_marginTop="32dp"
+        android:text="Status: Stopped"
+        android:textAppearance="?android:textAppearanceMedium" />
 
     <TextView
         android:id="@+id/signalStrengthTextView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Signal Strength: Null" />
+        android:layout_marginTop="16dp"
+        android:text="Signal Strength: Null"
+        android:textAppearance="?android:textAppearanceMedium" />
 
     <TextView
         android:id="@+id/locationTextView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Location: Null" />
+        android:layout_marginTop="16dp"
+        android:text="Location: Null"
+        android:textAppearance="?android:textAppearanceMedium" />
+
+    <TextView
+        android:id="@+id/resultsLabelTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="32dp"
+        android:text="Results:"
+        android:textAppearance="?android:textAppearanceMedium" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <TextView
+            android:id="@+id/resultsTextView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="32dp"
+            android:text="No results available yet"
+            android:textAppearance="?android:textAppearanceSmall" />
+
+    </ScrollView>
+
+    <TextView
+        android:id="@+id/rowCountTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/bottomLinearLayout"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="16dp"
+        android:text="Rows: 0"
+        android:textAppearance="?android:textAppearanceSmall" />
 
 </LinearLayout>

@@ -10,6 +10,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
+import android.os.Environment
 import android.telephony.PhoneStateListener
 import android.telephony.SignalStrength
 import android.telephony.TelephonyManager
@@ -17,6 +18,8 @@ import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.chaquo.python.Python
+import com.chaquo.python.android.AndroidPlatform
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
@@ -29,10 +32,14 @@ class MainActivity : AppCompatActivity() {
     private lateinit var statusTextView: TextView
     private lateinit var locationTextView: TextView
     private lateinit var signalStrengthTextView: TextView
+    private lateinit var resultsTextView: TextView
+    private lateinit var rowCountTextView: TextView
+
     private var isGatheringData = false
     private var strength = 0
     private var latitude = 0.0
     private var longitude = 0.0
+    private var rowNumber = 0
 
     private lateinit var telephonyManager: TelephonyManager
     private lateinit var fusedLocationClient: FusedLocationProviderClient
@@ -48,6 +55,8 @@ class MainActivity : AppCompatActivity() {
             // You can access the signal strength information using signalStrength.getGsmSignalStrength() or other methods
             strength = signalStrength.cellSignalStrengths[0].dbm // Example: GSM signal strength
             signalStrengthTextView.text = "Signal Strength: $strength"
+
+            addToDb()
         }
     }
 
@@ -61,6 +70,8 @@ class MainActivity : AppCompatActivity() {
         statusTextView = findViewById(R.id.statusTextView)
         locationTextView = findViewById(R.id.locationTextView)
         signalStrengthTextView = findViewById(R.id.signalStrengthTextView)
+        resultsTextView = findViewById(R.id.resultsTextView)
+        rowCountTextView = findViewById(R.id.rowCountTextView)
 
         telephonyManager = getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
@@ -73,6 +84,7 @@ class MainActivity : AppCompatActivity() {
                         latitude    =  String.format("%.4f", location.latitude).toDouble()
                         longitude   = String.format("%.4f", location.longitude).toDouble()
                         locationTextView.text = "Location: $latitude, $longitude"
+                        rowCountTextView.text = "Rows: $rowNumber"
 
                         addToDb()
                     }
@@ -96,6 +108,8 @@ class MainActivity : AppCompatActivity() {
 
         val std = DataModel(rsrp = rsrp, latitude = lat, longitude = lon)
         val status = dbHelper.insertData(std)
+
+        rowNumber += 1
         //Check insert success
         if (status > -1) {
             println("Data added successfully")
@@ -163,6 +177,7 @@ class MainActivity : AppCompatActivity() {
         isGatheringData = true
         startStopButton.text = "Stop"
         statusTextView.text = "Status: Gathering data..."
+        resultsTextView.text = "No results available yet"
     }
 
     @SuppressLint("SetTextI18n")
@@ -179,9 +194,34 @@ class MainActivity : AppCompatActivity() {
         val success = dbHelper.exportDatabase(this)
         if (success) {
             Toast.makeText(this, "Database exported successfully", Toast.LENGTH_SHORT).show()
+
+            runPythonScript()
         } else {
             Toast.makeText(this, "Failed to export database, please remove it manually from Download folder", Toast.LENGTH_SHORT).show()
         }
+    }
+
+
+    @SuppressLint("SetTextI18n")
+    private fun runPythonScript() {
+        Toast.makeText(this, "Calculating Parameters", Toast.LENGTH_SHORT).show()
+        if (!Python.isStarted()) {
+            Python.start(AndroidPlatform(this))
+        }
+
+        val py = Python.getInstance()
+        val mainModule = py.getModule("main")
+
+        val outputPath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+        val outputFileName = "exported_database.sql"
+        val fullPath = "${outputPath}/${outputFileName}"
+        println(fullPath)
+
+        Toast.makeText(this, "Calculation Finished Successfully!", Toast.LENGTH_SHORT).show()
+
+        val output = mainModule.callAttr("main", fullPath).toString()
+        resultsTextView.text = output
+
     }
 
     private fun createLocationRequest() {

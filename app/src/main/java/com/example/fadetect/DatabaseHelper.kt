@@ -47,7 +47,7 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         contentValues.put(LATITUDE, std.latitude)
         contentValues.put(LONGITUDE, std.longitude)
 
-        val success = db.insert(TBL_DATA, null, contentValues)
+        val success = db.insertWithOnConflict(TBL_DATA, null, contentValues, SQLiteDatabase.CONFLICT_IGNORE)
         db.close()
         return success
     }
