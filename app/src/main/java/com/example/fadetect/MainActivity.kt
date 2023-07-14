@@ -106,13 +106,15 @@ class MainActivity : AppCompatActivity() {
         val lat = latitude
         val lon = longitude
 
-        val std = DataModel(rsrp = rsrp, latitude = lat, longitude = lon)
-        val status = dbHelper.insertData(std)
+        if (rsrp != 0 && lat != 0.0 && lon != 0.0) {
+            val std = DataModel(rsrp = rsrp, latitude = lat, longitude = lon)
+            val status = dbHelper.insertData(std)
 
-        rowNumber += 1
-        //Check insert success
-        if (status > -1) {
-            println("Data added successfully")
+            rowNumber += 1
+            //Check insert success
+            if (status > -1) {
+                println("Data added successfully")
+            }
         }
     }
 

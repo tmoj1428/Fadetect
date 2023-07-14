@@ -20,7 +20,7 @@ def main(database_directory: str):
     calc_distances(df)
 
     df = df[df['distance'] > 0.0]
-    
+
     # Pr = P0 - 10 * beta * log10(d/d0) + σ²
 
     Pr = df['rsrp'].to_numpy()
@@ -35,14 +35,15 @@ def main(database_directory: str):
     beta_estimate = -slope
     P0_estimate = intercept
 
-    # Estimate the noise variance (sigma squared) by calculating the residuals
+    # Estimate the noise standard deviation (sigma) by calculating the residuals
     residuals = Pr - (P0_estimate - beta_estimate * X)
     sigma_squared_estimate = np.var(residuals)
+    sigma_estimate = np.sqrt(sigma_squared_estimate)
 
     estimated_params = {
-        "Transmitted Power (P0)": P0_estimate,
-        "Path Loss Exponent (beta)": beta_estimate,
-        "Gaussian Noise Variance": sigma_squared_estimate
+        "Transmitted Power (P0)": "{:.2f}".format(P0_estimate),
+        "Path Loss Exponent (beta)": "{:.2f}".format(beta_estimate),
+        "Gaussian Noise Variance": "{:.2f}".format(sigma_estimate),
     }
 
     json_output = json.dumps(estimated_params)
@@ -50,6 +51,6 @@ def main(database_directory: str):
     print("Estimated Parameters:\n")
     print("Transmitted Power (P0) : {:.2f} dBm".format(P0_estimate))
     print("Path Loss Exponent (beta)  : {:.2f}".format(beta_estimate))
-    print("Gaussian Noise Variance : {:.2f}".format(sigma_squared_estimate))
+    print("Gaussian Noise Variance : {:.2f}".format(sigma_estimate))
 
     return '\n'.join([f'{key}: {value}' for key, value in estimated_params.items()])
